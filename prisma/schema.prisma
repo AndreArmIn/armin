@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WeaponCategory {
+  SmallArms
+  Artillery
+  ArmoredVehicles
+  Aircraft
+  NavalSystems
+  Missiles
+  Ammunition
+  Electronics
+  Other
+}
+
+enum WeaponStatus {
+  Available
+  Sold
+  UnderRepair
+  Destroyed
+  Donated
+  Returned
+}
+
+enum TransactionType {
+  Sale
+  Delivery
+  Reception
+  Return
+  Repair
+  Replacement
+  Destruction
+  Donation
+}
+
+enum EquipmentCategory {
+  ProtectiveGear
+  Optics
+  Communications
+  Vehicles
+  MedicalSupplies
+  Clothing
+  Tools
+  Other
+}
+
+model Government {
+  id             String   @id @default(uuid())
+  name           String
+  countryCode    String   @map("country_code")
+  contactEmail   String   @map("contact_email")
+  contactPerson  String?  @map("contact_person")
+  phone          String?
+  address        String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  weaponsOwned   Weapon[]        @relation("CurrentOwner")
+  transactionsFrom Transaction[] @relation("FromGovernment")
+  transactionsTo   Transaction[] @relation("ToGovernment")
+
+  @@map("governments")
+}
+
+model WeaponType {
+  id          String         @id @default(uuid())
+  name        String
+  category    WeaponCategory
+  brand       String
+  description String?
+  imageUrl    String?        @map("image_url")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  weapons     Weapon[]
+
+  @@map("weapon_types")
+}
+
+model Weapon {
+  id             String       @id @default(uuid())
+  serialNumber   String       @unique @map("serial_number")
+  weaponTypeId   String       @map("weapon_type_id")
+  status         WeaponStatus @default(Available)
+  currentOwnerId String?      @map("current_owner_id")
+  notes          String?
+  acquisitionDate DateTime?   @map("acquisition_date")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  weaponType     WeaponType   @relation(fields: [weaponTypeId], references: [id])
+  currentOwner   Government?  @relation("CurrentOwner", fields: [currentOwnerId], references: [id])
+  transactions   Transaction[]
+
+  @@map("weapons")
+}
+
+model Equipment {
+  id           String            @id @default(uuid())
+  name         String
+  serialNumber String?           @unique @map("serial_number")
+  category     EquipmentCategory
+  brand        String?
+  quantity     Int               @default(1)
+  description  String?
+  status       String            @default("Available")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+
+  @@map("equipment")
+}
+
+model Transaction {
+  id             String          @id @default(uuid())
+  type           TransactionType
+  weaponId       String?         @map("weapon_id")
+  equipmentId    String?         @map("equipment_id")
+  fromId         String?         @map("from_id")
+  toId           String?         @map("to_id")
+  timestamp      DateTime        @default(now())
+  contractNumber String?         @map("contract_number")
+  value          Float?
+  currency       String?         @default("USD")
+  details        String?
+  notes          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  weapon         Weapon?         @relation(fields: [weaponId], references: [id])
+  equipment      Equipment?      @relation(fields: [equipmentId], references: [id])
+  fromGovernment Government?     @relation("FromGovernment", fields: [fromId], references: [id])
+  toGovernment   Government?     @relation("ToGovernment", fields: [toId], references: [id])
+
+  @@map("transactions")
+}
