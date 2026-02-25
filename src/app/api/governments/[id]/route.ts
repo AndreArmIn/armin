@@ -3,11 +3,12 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params
         const government = await prisma.government.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: {
                 weaponsOwned: {
                     include: { weaponType: true },
@@ -32,12 +33,13 @@ export async function GET(
 
 export async function PUT(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params
         const body = await request.json()
         const government = await prisma.government.update({
-            where: { id: params.id },
+            where: { id },
             data: body,
         })
         return NextResponse.json(government)
@@ -48,10 +50,11 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        await prisma.government.delete({ where: { id: params.id } })
+        const { id } = await params
+        await prisma.government.delete({ where: { id } })
         return NextResponse.json({ success: true })
     } catch (error) {
         return NextResponse.json({ error: 'Failed to delete government' }, { status: 500 })
